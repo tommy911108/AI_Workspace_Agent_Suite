@@ -1,0 +1,231 @@
+Calendar Agent Test Prompts
+
+使用方式說明：
+- 本檔案的分類與說明使用中文。
+- 真正要貼進 agent 的 prompt 使用英文。
+- 建議先從「讀取型測試」開始，再測建立/修改/刪除。
+- 如果你要避免真的改到行事曆，先用 retrieval-only 類型的 prompt。
+
+python run_calendar_agent.py --mode demo
+python run_calendar_agent.py --mode chat
+
+========================================
+一、讀取型測試
+========================================
+
+用途：
+- 測試 agent 是否能列出 calendars
+- 測試 agent 是否能查今天行程
+- 測試 agent 是否能查指定日期區間
+- 測試 agent 是否能使用 CLI read tools
+
+Prompt 1
+What calendars do I have?
+
+Prompt 2
+What's on my calendar today?
+
+Prompt 3
+Show me my events for the next 7 days.
+
+*Prompt 4
+List my events from 2026-06-01 to 2026-06-07.
+
+Prompt 5
+Show me any calendar events that mention meeting, class, or project this week.
+
+Prompt 6
+List my calendars and identify which one is my primary calendar.
+
+========================================
+二、事件建立測試
+========================================
+
+用途：
+- 測試 agent 是否能建立 event
+- 測試 agent 是否能處理時間、地點、描述、attendees
+- 測試 agent 是否能用 MCP tool 做 create
+
+*Prompt 7
+Create a calendar event called "LLM Project Discussion" tomorrow from 3:00 PM to 4:00 PM on my primary calendar.
+
+*Prompt 8
+Schedule a meeting called "Weekly Research Sync" next Monday from 10:00 AM to 11:00 AM with a description "Discuss experiment progress".
+
+Prompt 9
+Create an event called "Team Lunch" on 2026-06-05 from 12:00 PM to 1:00 PM at Taipei Main Station.
+
+Prompt 10
+Create a Google Calendar event called "Final Project Demo" next Friday from 2:00 PM to 3:30 PM and add a Google Meet link.
+
+Prompt 11
+Create an event called "Advisor Meeting" on 2026-06-03 from 9:00 AM to 10:00 AM and invite example1@email.com and example2@email.com.
+
+========================================
+三、事件修改測試
+========================================
+
+用途：
+- 測試 agent 是否能找到 event 並修改
+- 測試 agent 是否會先讀取再更新
+- 測試時間與描述修改
+
+前置建議：
+- 先手動建立一個容易辨識的 event，例如 "Calendar Agent Test Event"
+
+*Prompt 12
+Find my event called "LLM Project Discussion" and move it 1 hour later.
+
+Prompt 13
+Find the event titled "Calendar Agent Test Event" and change the location to "Online".
+
+Prompt 14
+Update my "LLM Project Discussion" event and add the description "Prepare slides before the meeting".
+
+Prompt 15
+Find my "Team Lunch" event and extend it by 30 minutes.
+
+========================================
+四、刪除測試
+========================================
+
+用途：
+- 測試 agent 是否會要求明確確認
+- 測試 delete 行為是否正常
+
+前置建議：
+- 先建立一個專門拿來刪除的測試 event
+
+*Prompt 16
+Find my event called "LLM Project Discussion" and delete it.
+
+Prompt 17
+Delete my "LLM Project Discussion" event.
+
+Prompt 18
+I want to remove the event called "Team Lunch". Please confirm before deleting it.
+
+========================================
+五、找空檔 / FreeBusy 測試
+========================================
+
+用途：
+- 測試 `query_freebusy`
+- 測試 agent 是否能找可用時段
+
+*Prompt 19
+Find a free 30-minute slot for me tomorrow afternoon.
+
+Prompt 20
+Check my availability from 2026-06-02 09:00 to 2026-06-02 18:00 and tell me when I am free.
+
+Prompt 21
+Find a 1-hour free slot for a project meeting sometime this week.
+
+Prompt 22
+Check whether I am busy between 2:00 PM and 4:00 PM tomorrow.
+
+========================================
+六、RSVP / 回覆邀請測試
+========================================
+
+用途：
+- 測試 agent 是否能處理 RSVP
+- 測試 agent 是否能修改 event response
+
+前置建議：
+- 你的 calendar 裡要先有一個收到的邀請事件
+
+*Prompt 23
+Find the meeting invitation I received most recently and accept it.
+
+Prompt 24
+Find the event invitation titled "Project Review" and mark it as tentative.
+
+Prompt 25
+Decline the invitation called "Optional Social Gathering".
+
+========================================
+七、安全型 / 不修改資料測試
+========================================
+
+用途：
+- 測試 agent 是否只讀不改
+- 適合 demo
+
+Prompt 26
+Do not create, update, or delete anything. Only summarize my events for the next 3 days.
+
+Prompt 27
+Read my calendar only. Tell me what is on my schedule today and tomorrow.
+
+Prompt 28
+Only inspect my calendar. Do not make any changes. Tell me whether I have any meetings this week.
+
+========================================
+八、Demo 模式可用問題
+========================================
+
+用途：
+- 適合快速展示
+- 跟老師 PDF 的方向相近
+
+Prompt 29
+What calendars do I have?
+
+Prompt 30
+What's on my calendar today?
+
+Prompt 31
+Show me my events for the next 7 days.
+
+========================================
+九、邊界情況測試
+========================================
+
+用途：
+- 測試 agent 是否在資訊不足時要求澄清
+- 測試模糊時間描述
+
+Prompt 32
+Schedule a meeting for me sometime next week.
+
+Prompt 33
+Move my meeting to a better time.
+
+Prompt 34
+Delete the event from last week.
+
+Prompt 35
+Find a meeting with John and do something with it.
+
+預期：
+- 這類 prompt 不夠明確
+- agent 應該要追問，而不是亂做決定
+
+========================================
+十、測試建議順序
+========================================
+
+建議順序：
+
+1. 先跑讀取型
+- Prompt 1
+- Prompt 2
+- Prompt 3
+
+2. 再跑安全型
+- Prompt 26
+- Prompt 27
+
+3. 再跑建立事件
+- Prompt 7
+- Prompt 9
+
+4. 再跑修改 / 刪除
+- Prompt 12
+- Prompt 16
+
+5. 最後跑 freebusy / RSVP
+- Prompt 19
+- Prompt 23
