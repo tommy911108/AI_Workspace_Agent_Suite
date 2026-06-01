@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import time
 from typing import Any
 
 from ..config import Settings
@@ -15,40 +16,66 @@ except ImportError:  # pragma: no cover - dependency is optional during bootstra
 
 
 CLI_TIMEOUT_SECONDS = 15
+CLI_MAX_RETRIES = 3
+CLI_RETRY_DELAY_SECONDS = 1.0
+
+
+def _is_transient_cli_error(message: str) -> bool:
+    """Detect short-lived workspace-cli / sidecar session failures."""
+    normalized = message.lower()
+    transient_markers = (
+        "session terminated",
+        "connection refused",
+        "all connection attempts failed",
+        "server disconnected",
+        "temporarily unavailable",
+    )
+    return any(marker in normalized for marker in transient_markers)
 
 
 # This block runs workspace-cli against the local HTTP sidecar.
 def _run_workspace_cli(url: str, args: list[str]) -> str:
     command = ["workspace-cli", "--url", url, *args]
-    try:
-        completed = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            timeout=CLI_TIMEOUT_SECONDS,
-            check=False,
-        )
-    except FileNotFoundError as exc:
-        raise RuntimeError(
-            "workspace-cli is not installed or not on PATH. "
-            "Install workspace-mcp CLI before using calendar CLI tools."
-        ) from exc
-    except subprocess.TimeoutExpired as exc:
-        raise RuntimeError("workspace-cli timed out after 15 seconds.") from exc
+    last_error = "Unknown CLI error"
 
-    if completed.returncode != 0:
-        stderr = completed.stderr.strip() or completed.stdout.strip() or "Unknown CLI error"
-        raise RuntimeError(f"workspace-cli failed: {stderr}")
+    for attempt in range(1, CLI_MAX_RETRIES + 1):
+        try:
+            completed = subprocess.run(
+                command,
+                capture_output=True,
+                text=True,
+                timeout=CLI_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise RuntimeError(
+                "workspace-cli is not installed or not on PATH. "
+                "Install workspace-mcp CLI before using calendar CLI tools."
+            ) from exc
+        except subprocess.TimeoutExpired as exc:
+            if attempt < CLI_MAX_RETRIES:
+                time.sleep(CLI_RETRY_DELAY_SECONDS)
+                continue
+            raise RuntimeError("workspace-cli timed out after 15 seconds.") from exc
 
-    output = completed.stdout.strip()
-    if not output:
-        return "workspace-cli returned no output."
+        if completed.returncode == 0:
+            output = completed.stdout.strip()
+            if not output:
+                return "workspace-cli returned no output."
 
-    try:
-        parsed = json.loads(output)
-    except json.JSONDecodeError:
-        return output
-    return json.dumps(parsed, indent=2, ensure_ascii=False)
+            try:
+                parsed = json.loads(output)
+            except json.JSONDecodeError:
+                return output
+            return json.dumps(parsed, indent=2, ensure_ascii=False)
+
+        last_error = completed.stderr.strip() or completed.stdout.strip() or "Unknown CLI error"
+        if attempt < CLI_MAX_RETRIES and _is_transient_cli_error(last_error):
+            time.sleep(CLI_RETRY_DELAY_SECONDS)
+            continue
+        break
+
+    raise RuntimeError(f"workspace-cli failed: {last_error}")
 
 
 def _require_tool_support() -> None:

@@ -6,7 +6,7 @@ Calendar Agent Test Prompts
 - 建議先從「讀取型測試」開始，再測建立/修改/刪除。
 - 如果你要避免真的改到行事曆，先用 retrieval-only 類型的 prompt。
 
-python run_calendar_agent.py --mode demo
+//python run_calendar_agent.py --mode demo
 python run_calendar_agent.py --mode chat
 
 ========================================
